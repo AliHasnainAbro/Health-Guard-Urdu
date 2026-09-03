@@ -19,7 +19,8 @@ create table if not exists healthguard_kb (
 );
 
 -- Index for fast similarity search (cosine distance)
+-- lists should be ~sqrt(n) for small tables; bump to 100 once KB exceeds ~1000 rows.
 create index if not exists healthguard_kb_embedding_idx
     on healthguard_kb
     using ivfflat (embedding vector_cosine_ops)
-    with (lists = 100);
+    with (lists = 3);

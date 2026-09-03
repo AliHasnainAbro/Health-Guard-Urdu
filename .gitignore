@@ -5,6 +5,7 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+.cache/
 *.egg-info/
 .DS_Store
 audio_output/

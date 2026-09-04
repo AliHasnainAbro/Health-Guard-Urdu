@@ -11,7 +11,7 @@ from pathlib import Path
 from fastapi import FastAPI, Form
 from fastapi.responses import FileResponse, HTMLResponse
 
-from app.rag import classify_claim
+from app.rag import call_llm, classify_claim, is_roman_script
 from app.tts import text_to_speech_urdu
 
 app = FastAPI(
@@ -53,6 +53,12 @@ def check_claim(claim: str = Form(...)):
     sources = result.get("retrieved_sources", [])
     kb_match = result.get("knowledge_base_match", False)
 
+    # Convert button initial state: offer the script the counter-message is NOT in
+    if is_roman_script(claim):
+        convert_target, convert_label = "urdu", "🔤 اردو رسم الخط میں دیکھیں"
+    else:
+        convert_target, convert_label = "roman", "🔤 Roman Urdu میں دیکھیں"
+
     # Build HTML result page with embedded audio player
     framing_html = "<br>".join(f"&bull; {f}" for f in framing) if framing else "<em>None detected</em>"
 
@@ -86,7 +92,11 @@ def check_claim(claim: str = Form(...)):
       <p><strong>Confidence:</strong> {result['confidence_score']}%</p>
       <p><strong>KB match:</strong> {"Yes" if kb_match else "No"}</p>
       <p><strong>Cultural framing:</strong><br>{framing_html}</p>
-      <p><strong>Counter-message:</strong><br>{result['counter_message_urdu']}</p>
+      <p><strong>Counter-message:</strong><br>
+        <span id="counter-message">{result['counter_message_urdu']}</span><br>
+        <button onclick="convertScript()" id="convert-btn" data-target="{convert_target}"
+          style="margin-top:6px;">{convert_label}</button>
+      </p>
       <p><strong>Listen:</strong><br>
         <audio controls src="/audio/{audio_file}" style="width:100%; direction:ltr;">
           Your browser does not support audio.
@@ -95,8 +105,41 @@ def check_claim(claim: str = Form(...)):
       <p><strong>Sources:</strong><br>{sources_html}</p>
       <hr>
       <a href="/">&larr; Check another claim</a>
+      <script>
+      async function convertScript() {{
+        const msgEl = document.getElementById('counter-message');
+        const btn = document.getElementById('convert-btn');
+        const currentTarget = btn.dataset.target || 'urdu';
+        btn.disabled = true;
+        try {{
+          const resp = await fetch('/transliterate', {{
+            method: 'POST',
+            headers: {{'Content-Type': 'application/x-www-form-urlencoded'}},
+            body: `text=${{encodeURIComponent(msgEl.textContent)}}&target=${{currentTarget}}`
+          }});
+          const data = await resp.json();
+          msgEl.textContent = data.converted;
+          btn.dataset.target = currentTarget === 'urdu' ? 'roman' : 'urdu';
+          btn.textContent = currentTarget === 'urdu' ? '🔤 Roman Urdu میں دیکھیں' : '🔤 اردو رسم الخط میں دیکھیں';
+        }} finally {{
+          btn.disabled = false;
+        }}
+      }}
+      </script>
     </body></html>
     """)
+
+
+@app.post("/transliterate")
+def transliterate(text: str = Form(...), target: str = Form(...)):
+    """Convert text between Roman Urdu and Urdu script on demand."""
+    target_script = "رومن اردو (لاطینی رسم الخط)" if target == "roman" else "اردو رسم الخط"
+    prompt = (
+        f"درج ذیل متن کو {target_script} میں تبدیل کریں۔ "
+        f"صرف تبدیل شدہ متن واپس کریں، کوئی وضاحت نہیں:\n\n{text}"
+    )
+    converted = call_llm(prompt, expect_json=False)
+    return {"converted": converted.strip()}
 
 
 @app.get("/audio/{filename}")

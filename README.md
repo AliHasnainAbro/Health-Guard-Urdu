@@ -39,6 +39,12 @@ Text-in, **text + audio-out**. No image OCR, no ASR (speech-to-text), and no Wha
 - 3 of 12 KB documents cite general public-health consensus rather than a single linkable primary source (disclosed per-document in `kb_sourcing_methodology.md`)
 - Tested against single-claim inputs across all 3 categories, adversarial prompt injection, and Roman Urdu variants; not stress-tested at scale or against compound/ambiguous real-world WhatsApp forwards
 
+## Roadmap
+
+- **WhatsApp delivery** — the pipeline is already text-in / text+audio-out, matching WhatsApp's interface exactly; a bot front-end puts counter-messages directly into the channel where the misinformation travels
+- **Voice-note input (ASR)** — many WhatsApp health claims arrive as voice notes, not text; speech-to-text extends coverage to that format
+- **Knowledge-base scale-up** — from 12 prototype documents to hundreds (each with a named primary source), raising the relevance threshold from 0.40 as the similarity spread widens
+
 ## Tech Stack
 
 | Layer | Technology |

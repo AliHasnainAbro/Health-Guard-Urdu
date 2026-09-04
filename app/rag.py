@@ -19,6 +19,10 @@ QWEN_API_KEY = os.environ.get("QWEN_API_KEY", "")
 QWEN_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
 QWEN_MODEL = "qwen-plus"
 
+# Tuned for 12-doc prototype KB: scores range 0.37-0.48 with paraphrase-multilingual-MiniLM.
+# Bump to ~0.5 once KB grows to hundreds of docs and similarity spread widens.
+RELEVANCE_THRESHOLD = 0.40
+
 _model = None
 _supabase = None
 
@@ -102,7 +106,33 @@ CLASSIFICATION_PROMPT_TEMPLATE = """آپ ایک صحت سے متعلق غلط م
   "category": "<ایک مختصر زمرہ، مثلاً: پولیو ویکسین - بانجھ پن کا دعویٰ>",
   "confidence_score": <0-100 کے درمیان نمبر>,
   "cultural_framing_detected": ["<لاگو ہونے والے نمونے، خالی فہرست اگر کوئی نہیں>"],
-  "counter_message_urdu": "<ایک مختصر، سادہ اردو میں جوابی پیغام جو صارف فوری طور پر آگے بھیج سکے>"
+  "counter_message_urdu": "<ایک مختصر، سادہ اردو میں جوابی پیغام جو صارف فوری طور پر آگے بھیج سکے>",
+  "knowledge_base_match": true
+}}
+"""
+
+NO_MATCH_PROMPT_TEMPLATE = """آپ ایک صحت سے متعلق غلط معلومات کی شناخت کرنے والا معاون ہیں، جو پاکستان کے لیڈی ہیلتھ ورکرز کی مدد کے لیے بنایا گیا ہے۔
+
+صارف کا دعویٰ:
+{claim}
+
+نوٹ: اس دعوے کے لیے ہمارے تصدیق شدہ علم کی بنیاد میں کوئی متعلقہ ماخذ نہیں ملا۔ اپنا تجزیہ عام طبی احتیاط اور عمومی علم کی بنیاد پر کریں۔
+
+اپنے تجزیے میں خاص طور پر ان تین ثقافتی نمونوں کو دیکھیں:
+1. مذہبی رہنمائی کے دعوے (جیسے "علماء کہتے ہیں...", حلال/حرام سے متعلق دعوے)
+2. روایتی ٹوٹکوں کو طبی طور پر ثابت شدہ ظاہر کرنا
+3. اینٹی ویکسین بیانیے (خاص طور پر پولیو کے قطرے، بانجھ پن کے دعوے)
+
+اہم: confidence_score میں حقیقی غیر یقینییت کو ظاہر کریں — واضح طور پر غلط دعووں کے لیے 90-97 استعمال کریں۔ چونکہ ہمارے پاس تصدیق شدہ ماخذ نہیں ہے، confidence_score کو 70 سے زیادہ نہ رکھیں۔
+
+دعوے کا تجزیہ کریں اور نیچے دیے گئے JSON فارمیٹ میں جواب دیں، کوئی اضافی متن شامل نہ کریں:
+
+{{
+  "category": "<ایک مختصر زمرہ>",
+  "confidence_score": <0-70 کے درمیان نمبر>,
+  "cultural_framing_detected": ["<لاگو ہونے والے نمونے، خالی فہرست اگر کوئی نہیں>"],
+  "counter_message_urdu": "<ایک مختصر، سادہ اردو میں جوابی پیغام جو صارف فوری طور پر آگے بھیج سکے>",
+  "knowledge_base_match": false
 }}
 """
 
@@ -110,21 +140,36 @@ CLASSIFICATION_PROMPT_TEMPLATE = """آپ ایک صحت سے متعلق غلط م
 def classify_claim(claim: str) -> dict:
     """Full pipeline: retrieve context, classify with LLM, return structured result."""
     retrieved = retrieve_context(claim, top_k=3)
-    context_text = "\n\n".join(
-        f"- {doc['content_urdu']} (ماخذ: {doc['source_url']})" for doc in retrieved
-    )
-    prompt = CLASSIFICATION_PROMPT_TEMPLATE.format(claim=claim, context=context_text)
+
+    # Check relevance: use top similarity score to decide if KB has useful context
+    top_similarity = float(retrieved[0]["similarity"]) if retrieved else 0.0
+    kb_match = top_similarity >= RELEVANCE_THRESHOLD
+
+    if kb_match:
+        context_text = "\n\n".join(
+            f"- {doc['content_urdu']} (\u0645\u0627\u062e\u0630: {doc['source_url']})" for doc in retrieved
+        )
+        prompt = CLASSIFICATION_PROMPT_TEMPLATE.format(claim=claim, context=context_text)
+    else:
+        prompt = NO_MATCH_PROMPT_TEMPLATE.format(claim=claim)
 
     llm_response_text = call_llm(prompt)
 
     try:
         result = json.loads(llm_response_text)
     except json.JSONDecodeError:
-        # Defensive fallback if the LLM wraps JSON in markdown fences or adds text
         cleaned = llm_response_text.strip().strip("```json").strip("```").strip()
         result = json.loads(cleaned)
 
-    result["retrieved_sources"] = [
-        {"title": doc["title"], "source_url": doc["source_url"]} for doc in retrieved
-    ]
+    # Force the KB match flag to match our threshold check
+    result["knowledge_base_match"] = kb_match
+
+    # Only attach sources if we actually used the KB
+    if kb_match:
+        result["retrieved_sources"] = [
+            {"title": doc["title"], "source_url": doc["source_url"]} for doc in retrieved
+        ]
+    else:
+        result["retrieved_sources"] = []
+
     return result

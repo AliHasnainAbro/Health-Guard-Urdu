@@ -125,6 +125,15 @@ def normalize_claim(claim: str) -> str:
     return normalized or claim
 
 
+def to_urdu_script(text: str) -> str:
+    """Convert Roman Urdu text to Urdu script — used to ensure TTS always gets proper Urdu script input."""
+    prompt = (
+        "درج ذیل متن کو اردو رسم الخط میں تبدیل کریں۔ "
+        "صرف تبدیل شدہ متن واپس کریں، کوئی وضاحت نہیں:\n\n" + text
+    )
+    return call_llm(prompt, expect_json=False).strip()
+
+
 CLASSIFICATION_PROMPT_TEMPLATE = """آپ ایک صحت سے متعلق غلط معلومات کی شناخت کرنے والا معاون ہیں، جو پاکستان کے لیڈی ہیلتھ ورکرز کی مدد کے لیے بنایا گیا ہے۔
 
 صارف کا دعویٰ:

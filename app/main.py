@@ -11,7 +11,7 @@ from pathlib import Path
 from fastapi import FastAPI, Form
 from fastapi.responses import FileResponse, HTMLResponse
 
-from app.rag import call_llm, classify_claim, is_roman_script
+from app.rag import call_llm, classify_claim, is_roman_script, to_urdu_script
 from app.tts import text_to_speech_urdu
 
 app = FastAPI(
@@ -46,7 +46,14 @@ def demo_form():
 def check_claim(claim: str = Form(...)):
     """Full pipeline: classify the claim via RAG, generate TTS audio, return HTML with player."""
     result = classify_claim(claim)
-    audio_path = text_to_speech_urdu(result["counter_message_urdu"])
+
+    # TTS needs actual Urdu script regardless of what script is displayed on screen —
+    # gTTS with lang='ur' mispronounces Roman-script (Latin-letter) input badly.
+    tts_text = result["counter_message_urdu"]
+    if is_roman_script(tts_text):
+        tts_text = to_urdu_script(tts_text)
+
+    audio_path = text_to_speech_urdu(tts_text)
     audio_file = os.path.basename(audio_path)
 
     framing = result.get("cultural_framing_detected", [])
@@ -133,13 +140,15 @@ def check_claim(claim: str = Form(...)):
 @app.post("/transliterate")
 def transliterate(text: str = Form(...), target: str = Form(...)):
     """Convert text between Roman Urdu and Urdu script on demand."""
-    target_script = "رومن اردو (لاطینی رسم الخط)" if target == "roman" else "اردو رسم الخط"
-    prompt = (
-        f"درج ذیل متن کو {target_script} میں تبدیل کریں۔ "
-        f"صرف تبدیل شدہ متن واپس کریں، کوئی وضاحت نہیں:\n\n{text}"
-    )
-    converted = call_llm(prompt, expect_json=False)
-    return {"converted": converted.strip()}
+    if target == "urdu":
+        converted = to_urdu_script(text)
+    else:
+        prompt = (
+            "درج ذیل متن کو رومن اردو میں تبدیل کریں۔ "
+            "صرف تبدیل شدہ متن واپس کریں، کوئی وضاحت نہیں:\n\n" + text
+        )
+        converted = call_llm(prompt, expect_json=False).strip()
+    return {"converted": converted}
 
 
 @app.get("/audio/{filename}")

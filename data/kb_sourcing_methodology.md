@@ -12,6 +12,17 @@ This is disclosed per-document in the KB file itself, and repeated here for audi
 
 Access date for all sources below: 3 September 2026.
 
+**Link maintenance (4 September 2026):** the PAHO page "Debunking Immunization Myths"
+(paho.org/en/topics/immunization/debunking-immunization-myths), previously cited by docs
+#7, #8, #9 and #12, began returning 403 errors to all visitors (browser and automated
+checks alike). All four citations were replaced with live WHO equivalents: the
+"Vaccines and immunization: Vaccine safety" Q&A (docs #7, #8, #9) and the COVID-19
+Mythbusters page (doc #12). Doc #9 moved out of the weak-citation set as a result —
+see "Known weak points" below. The same day, the Johns Hopkins link in doc #5
+(publichealth.jhu.edu/2013/klag-CIA-vaccination-cover-pakistan) also began returning
+403 to all visitors and was replaced with The Guardian's original 11 July 2011 report
+on the CIA fake vaccination drive.
+
 ---
 
 ### 1. پولیو ویکسین بانجھ پن کا سبب نہیں بنتی
@@ -40,7 +51,7 @@ Access date for all sources below: 3 September 2026.
 ### 5. مغربی سازش کا الزام: حقیقت اور غلط فہمی
 - **Sources**:
   - PMC6318131, "Polio in Pakistan: Political, Sociological, and Epidemiological Factors" (pmc.ncbi.nlm.nih.gov/articles/PMC6318131)
-  - National Geographic / ABC News reporting on the 2011 CIA fake hepatitis vaccination campaign (Abbottabad/Bin Laden operation)
+  - The Guardian, "CIA organised fake vaccination drive to get Osama bin Laden's DNA" (11 Jul 2011, theguardian.com/world/2011/jul/11/cia-fake-vaccinations-osama-bin-ladens-dna) — replaced a dead Johns Hopkins Bloomberg School link on 4 Sep 2026
   - Cross-referenced against doc #1's NCLB lab findings
 - **Key facts used**: The CIA campaign was real and did fuel sterilization/HIV conspiracy narratives and violence against vaccinators; this is distinct from, and does not support, claims about current OPV ingredients.
 - **Translation/paraphrase notes**: Carefully worded to acknowledge the real historical event without validating the false ingredient claim it fueled.
@@ -52,17 +63,17 @@ Access date for all sources below: 3 September 2026.
 - **Translation/paraphrase notes**: Paraphrased; retracted-1998-study reference is well-established public record, not from this specific WHO statement.
 
 ### 7. ویکسین کے اجزاء نقصان دہ نہیں
-- **Source**: PAHO/WHO, "Debunking Immunization Myths"
-- **URL**: paho.org/en/topics/immunization/debunking-immunization-myths
-- **Translation/paraphrase notes**: Paraphrased.
+- **Source**: WHO, "Vaccines and immunization: Vaccine safety" (Q&A, updated 23 Sep 2025) — ingredient safety (thiomersal, aluminium) and testing rigor sections
+- **URL**: who.int/news-room/questions-and-answers/item/vaccines-and-immunization-vaccine-safety
+- **Translation/paraphrase notes**: Paraphrased. Originally cited the PAHO "Debunking Immunization Myths" page; replaced 4 Sep 2026 after that page began returning 403 to all visitors.
 
 ### 8. ایک ساتھ کئی ویکسینز مدافعتی نظام کو کمزور نہیں کرتیں
-- **Source**: Same as #7 (PAHO/WHO Debunking Immunization Myths)
+- **Source**: Same as #7 (WHO vaccine safety Q&A)
 - **Translation/paraphrase notes**: Paraphrased.
 
 ### 9. ویکسین کے بعد ہلکا بخار یا سوجن خطرناک نہیں
-- **Source**: General WHO/PAHO guidance on Adverse Events Following Immunization (AEFI) — established public-health consensus, not a single named document
-- **Flag**: same weak-citation caveat as doc #3 — general consensus rather than one traceable source.
+- **Source**: WHO, "Vaccines and immunization: Vaccine safety" Q&A (side effects and AEFI sections: "sore arm or a mild fever... minor and of short duration"); PMC7090020 review on vaccine safety monitoring
+- **Note**: originally flagged as a weak consensus citation (no named document). Upgraded to a named WHO source on 4 Sep 2026 when the previously-linked PAHO page went dead — the Q&A's side-effects and AEFI sections directly support this document's content.
 
 ### 10. گھریلو ٹوٹکے وائرل بیماریوں کا علاج نہیں
 - **Source**: Dubawa fact-check, "WHO did not approve COVID-19 herbal remedy with black pepper powder, ginger juice, others as ingredients"
@@ -75,7 +86,7 @@ Access date for all sources below: 3 September 2026.
 
 ### 12. مستند علاج کی جگہ ٹوٹکوں پر انحصار خطرناک ہے
 - **Sources**:
-  - WHO general health-misinformation guidance
+  - WHO COVID-19 Mythbusters (home remedies — pepper, supplements, and similar — do not prevent or cure COVID-19)
   - "A First Look at COVID-19 Messages on WhatsApp in Pakistan" (arxiv.org/html/2011.09145) — found ~20% of COVID-era Pakistani WhatsApp misinformation was bogus home remedies (basil seeds, salt/garlic gargles, honey-lemon tea, etc.)
 - **Translation/paraphrase notes**: Paraphrased; statistic (~20%) is from the cited arXiv study, not fabricated.
 
@@ -83,10 +94,12 @@ Access date for all sources below: 3 September 2026.
 
 ## Known weak points (disclosed, not hidden)
 
-Three documents (#3, #9, #11) rest on general public-health consensus rather than one
+Two documents (#3, #11) rest on general public-health consensus rather than one
 specific, linkable primary source. This is disclosed here rather than papered over with
 an invented citation. If time allows before the deadline, these are the first candidates
-to strengthen with a named WHO/PAHO page or peer-reviewed source.
+to strengthen with a named WHO page or peer-reviewed source. (Doc #9 was in this set
+until 4 Sep 2026, when its dead PAHO citation was replaced with the WHO vaccine safety
+Q&A — see the link maintenance note at the top.)
 
 ## Sources checked and deliberately NOT used
 

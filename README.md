@@ -36,7 +36,7 @@ Text-in, **text + audio-out**. No image OCR, no ASR (speech-to-text), and no Wha
 ## Known Limitations
 
 - Confidence scores are LLM-generated and prompt-guided (capped below 100 for non-absolute claims), not independently calibrated against a labeled test set
-- 3 of 12 KB documents cite general public-health consensus rather than a single linkable primary source (disclosed per-document in `kb_sourcing_methodology.md`)
+- 2 of 12 KB documents cite general public-health consensus rather than a single linkable primary source (disclosed per-document in `kb_sourcing_methodology.md`)
 - Tested against single-claim inputs across all 3 categories, adversarial prompt injection, and Roman Urdu variants; not stress-tested at scale or against compound/ambiguous real-world WhatsApp forwards
 
 ## Roadmap

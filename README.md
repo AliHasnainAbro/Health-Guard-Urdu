@@ -11,7 +11,7 @@ Developed as a submission for the **2026 IEEE Technology Summit AI Founder Showc
 - **RAG classification** — retrieval from a 12-document vetted Urdu knowledge base (Supabase + pgvector), with a per-document relevance threshold so weak sources never ride along a good match
 - **Roman Urdu support** — LLM-based script normalization with ensemble retrieval, so `polio ke drops...` matches the same KB entries as پولیو کے قطرے...
 - **Script-aware output** — the counter-message comes back in the script the user wrote in (Roman Urdu in → Roman Urdu out), with a one-click toggle to switch scripts
-- **Verified sources** — every KB hit lists its citation with clickable `[verify]` links to the primary source
+- **Verified sources** — KB hits link to their primary source with clickable `[verify]` links where one exists; one document is intentionally left without a specific citation, disclosed in `kb_sourcing_methodology.md`
 - **Urdu TTS** — audio counter-message via gTTS, playable inline in the demo page
 
 ## The Problem
@@ -32,6 +32,12 @@ If nothing in the knowledge base clears the relevance threshold, the system says
 ### Scope of this build
 
 Text-in, **text + audio-out**. No image OCR, no ASR (speech-to-text), and no WhatsApp/Telegram bot integration in this build.
+
+## Known Limitations
+
+- Confidence scores are LLM-generated and prompt-guided (capped below 100 for non-absolute claims), not independently calibrated against a labeled test set
+- 3 of 12 KB documents cite general public-health consensus rather than a single linkable primary source (disclosed per-document in `kb_sourcing_methodology.md`)
+- Tested against single-claim inputs across all 3 categories, adversarial prompt injection, and Roman Urdu variants; not stress-tested at scale or against compound/ambiguous real-world WhatsApp forwards
 
 ## Tech Stack
 

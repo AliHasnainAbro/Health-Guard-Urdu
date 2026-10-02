@@ -7,3 +7,5 @@ pydantic==2.12.5
 python-multipart==0.0.12
 requests==2.32.3
 gTTS==2.5.3
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu

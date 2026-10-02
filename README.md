@@ -157,7 +157,10 @@ repository; Render will use `render.yaml` and will prompt for the three
 secrets. After deployment:
 
 The repository includes `runtime.txt` and a `PYTHON_VERSION` setting to pin
-Render to Python 3.11.9. This avoids dependency builds from source. If the
+Render to Python 3.11.9. It also pins the CPU-only PyTorch wheel because the
+free Render instance has 512 MiB of memory and cannot start with the
+CUDA-enabled PyTorch packages. These settings avoid dependency builds from
+source and out-of-memory startup failures. If the
 service was created manually in the Render dashboard, add
 `PYTHON_VERSION=3.11.9` under **Environment Variables** too; changing
 `render.yaml` alone does not update an existing dashboard-created service.

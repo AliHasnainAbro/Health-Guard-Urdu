@@ -156,10 +156,11 @@ included [Render configuration](./render.yaml) for the FastAPI backend and the
 repository; Render will use `render.yaml` and will prompt for the three
 secrets. After deployment:
 
-The repository includes `runtime.txt` to pin Render to Python 3.11.9. This is
-required because the pinned dependency versions have Python 3.11 wheels; with
-Python 3.14, Render may try to compile `pydantic-core` from Rust and the build
-will fail.
+The repository includes `runtime.txt` and a `PYTHON_VERSION` setting to pin
+Render to Python 3.11.9. This avoids dependency builds from source. If the
+service was created manually in the Render dashboard, add
+`PYTHON_VERSION=3.11.9` under **Environment Variables** too; changing
+`render.yaml` alone does not update an existing dashboard-created service.
 
 1. Copy the Render URL into `frontend/index.html` as `BACKEND_URL`.
 2. Set `FRONTEND_ORIGINS` on Render to the Hugging Face Static Space URL, for

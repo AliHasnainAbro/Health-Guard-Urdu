@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, Form
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 
 from app.rag import call_llm, classify_claim, is_roman_script, to_urdu_script
@@ -19,6 +20,20 @@ app = FastAPI(
     description="Urdu health-misinformation classification via RAG, with Urdu TTS counter-message output.",
     version="0.1.0",
 )
+
+frontend_origins = [
+    origin.strip()
+    for origin in os.environ.get("FRONTEND_ORIGINS", "").split(",")
+    if origin.strip()
+]
+if frontend_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=frontend_origins,
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
+    )
 
 
 @app.get("/health")

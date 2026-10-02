@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HealthGuard Urdu</title>
+    <style>
+      body { font-family: sans-serif; max-width: 680px; margin: 40px auto; padding: 0 16px; }
+      textarea { box-sizing: border-box; width: 100%; padding: 10px; }
+      button { cursor: pointer; padding: 8px 14px; }
+      .hint { color: #555; font-size: .9rem; }
+    </style>
+  </head>
+  <body>
+    <h1>HealthGuard Urdu</h1>
+    <p>Urdu and Roman Urdu health-claim checker.</p>
+    <p class="hint">The first request may take up to a minute while the free Render service wakes up.</p>
+    <form id="claim-form" method="post">
+      <textarea name="claim" rows="5" dir="auto" required
+        placeholder="یہاں دعویٰ لکھیں یا Roman Urdu استعمال کریں..."></textarea>
+      <br><br>
+      <button type="submit">Check claim</button>
+    </form>
+    <p id="status" role="status"></p>
+    <script>
+      const BACKEND_URL = "https://REPLACE-WITH-YOUR-RENDER-SERVICE.onrender.com";
+      const form = document.getElementById("claim-form");
+      form.action = `${BACKEND_URL}/check-claim`;
+    </script>
+  </body>
+</html>

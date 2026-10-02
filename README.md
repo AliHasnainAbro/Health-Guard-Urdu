@@ -1,3 +1,13 @@
+---
+title: HealthGuard Urdu
+emoji: 🩺
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Health-Guard-Urdu
 
 **HealthGuard Urdu** is an AI-powered health-misinformation detection system for Urdu-language content in Pakistan. It takes a user-submitted health claim as **text**, classifies it against a vetted knowledge base using a RAG (Retrieval-Augmented Generation) pipeline, and returns a short, plain-Urdu counter-message as **text plus synthesized audio**.
@@ -108,6 +118,58 @@ uvicorn app.main:app --reload
 ```
 
 Interactive API docs (Swagger UI) are then available at `http://127.0.0.1:8000/docs`, and the browser demo at `http://127.0.0.1:8000/`.
+
+### Deploy to Hugging Face Spaces
+
+This repository is configured as a **Docker Space**. FastAPI, the browser demo,
+the embedding model, and the generated audio endpoint all run in the same
+container. No Streamlit rewrite or Vercel adapter is needed.
+
+1. Create a new Space at <https://huggingface.co/new-space>.
+2. Choose **Docker** as the Space SDK and make the Space public or private as
+   appropriate.
+3. Push this repository to the Space:
+
+   ```bash
+   git remote add hf https://huggingface.co/spaces/<your-username>/<your-space>
+   git push hf main
+   ```
+
+4. In the Space **Settings → Variables and secrets**, add these secrets:
+   `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, and `QWEN_API_KEY`. Use the exact
+   names from `.env.example`; do not commit their values.
+5. Wait for the Docker build to finish. The Space listens on port `7860`, and
+   its public URL serves the browser demo at `/` and API documentation at
+   `/docs`.
+
+The first claim after a fresh build can take longer because
+`paraphrase-multilingual-MiniLM-L12-v2` is downloaded and loaded lazily. The
+Space filesystem is ephemeral, so generated MP3 files are temporary by
+design. The knowledge base remains in Supabase and must be initialized once
+using the existing SQL files and `scripts/index_kb.py`.
+
+### Free deployment with a Static Space and Render
+
+If Docker Spaces are not available on your free Hugging Face account, use the
+included [Render configuration](./render.yaml) for the FastAPI backend and the
+[static frontend](./frontend/). Create a free Render Web Service from this
+repository; Render will use `render.yaml` and will prompt for the three
+secrets. After deployment:
+
+The repository includes `runtime.txt` to pin Render to Python 3.11.9. This is
+required because the pinned dependency versions have Python 3.11 wheels; with
+Python 3.14, Render may try to compile `pydantic-core` from Rust and the build
+will fail.
+
+1. Copy the Render URL into `frontend/index.html` as `BACKEND_URL`.
+2. Set `FRONTEND_ORIGINS` on Render to the Hugging Face Static Space URL, for
+   example `https://your-username-your-space.hf.space`.
+3. Upload the contents of `frontend/` to a separate Hugging Face Space created
+   with the **Static** template.
+
+Never add `SUPABASE_SERVICE_KEY` or `QWEN_API_KEY` to Hugging Face variables.
+`SUPABASE_URL` is not a credential, but it is also unnecessary in the static
+frontend; keep all three backend settings in Render.
 
 ## Project Structure
 

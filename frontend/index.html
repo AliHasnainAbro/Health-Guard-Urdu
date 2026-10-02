@@ -15,7 +15,7 @@
     <h1>HealthGuard Urdu</h1>
     <p>Urdu and Roman Urdu health-claim checker.</p>
     <p class="hint">The first request may take up to a minute while the free Render service wakes up.</p>
-    <form id="claim-form" method="post">
+    <form id="claim-form">
       <textarea name="claim" rows="5" dir="auto" required
         placeholder="یہاں دعویٰ لکھیں یا Roman Urdu استعمال کریں..."></textarea>
       <br><br>
@@ -23,9 +23,32 @@
     </form>
     <p id="status" role="status"></p>
     <script>
-      const BACKEND_URL = "https://REPLACE-WITH-YOUR-RENDER-SERVICE.onrender.com";
+      const BACKEND_URL = "https://health-guard-urdu.onrender.com";
       const form = document.getElementById("claim-form");
-      form.action = `${BACKEND_URL}/check-claim`;
+      const status = document.getElementById("status");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        status.textContent = "Checking claim. The free backend may need a moment to wake up...";
+        const body = new URLSearchParams(new FormData(form));
+        try {
+          const response = await fetch(`${BACKEND_URL}/check-claim`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body
+          });
+          if (!response.ok) throw new Error(`Request failed (${response.status})`);
+          let html = await response.text();
+          html = html.replaceAll('href="/', `href="${BACKEND_URL}/`);
+          html = html.replaceAll('src="/', `src="${BACKEND_URL}/`);
+          html = html.replaceAll("fetch('/transliterate'", `fetch('${BACKEND_URL}/transliterate'`);
+          document.open();
+          document.write(html);
+          document.close();
+        } catch (error) {
+          status.textContent = `${error.message}. Please try again after the backend wakes up.`;
+        }
+      });
     </script>
   </body>
 </html>

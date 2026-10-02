@@ -9,7 +9,6 @@ import re
 
 import requests
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
 from supabase import create_client
 
 load_dotenv()
@@ -24,15 +23,7 @@ QWEN_MODEL = "qwen-plus"
 # Bump to ~0.5 once KB grows to hundreds of docs and similarity spread widens.
 RELEVANCE_THRESHOLD = 0.40
 
-_model = None
 _supabase = None
-
-
-def get_model():
-    global _model
-    if _model is None:
-        _model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-    return _model
 
 
 def get_supabase():
@@ -43,17 +34,48 @@ def get_supabase():
 
 
 def retrieve_context(claim: str, top_k: int = 3) -> list[dict]:
-    """Embed the claim and retrieve similar KB documents.
+    """Retrieve matching KB rows without loading a local ML model.
 
-    Only documents clearing RELEVANCE_THRESHOLD are returned — a strong overall
-    match should not drag in filler docs that merely happen to be third-closest.
+    Render's free instance cannot hold Torch plus the embedding model. The KB
+    is small enough to fetch and rank by normalized token overlap, which keeps
+    the API lightweight while preserving the verified-source workflow.
     """
-    embedding = get_model().encode(claim).tolist()
-    result = get_supabase().rpc(
-        "match_healthguard_kb",
-        {"query_embedding": embedding, "match_count": top_k},
+    query_tokens = _content_tokens(claim)
+    if not query_tokens:
+        return []
+
+    result = get_supabase().table("healthguard_kb").select(
+        "id,title,category,content_urdu,source_url,is_direct_urdu_source"
     ).execute()
-    return [d for d in result.data if float(d["similarity"]) >= RELEVANCE_THRESHOLD]
+    ranked = []
+    for document in result.data:
+        document_text = " ".join(
+            str(document.get(field, "")) for field in ("title", "category", "content_urdu")
+        )
+        document_tokens = _content_tokens(document_text)
+        if not document_tokens:
+            continue
+        overlap = query_tokens & document_tokens
+        similarity = len(overlap) / max(len(query_tokens), 1)
+        if similarity:
+            ranked.append({**document, "similarity": similarity})
+
+    ranked.sort(key=lambda document: document["similarity"], reverse=True)
+    return [
+        document
+        for document in ranked[:top_k]
+        if document["similarity"] >= RELEVANCE_THRESHOLD
+    ]
+
+
+def _content_tokens(text: str) -> set[str]:
+    """Return meaningful Urdu/Latin tokens for lightweight KB matching."""
+    tokens = set(re.findall(r"[\w\u0600-\u06FF]+", text.lower(), re.UNICODE))
+    stop_words = {
+        "اور", "کے", "کی", "کا", "سے", "میں", "ہے", "ہیں", "کو", "یہ", "کہ",
+        "ایک", "پر", "نے", "the", "and", "of", "to", "is", "are", "a", "an",
+    }
+    return tokens - stop_words
 
 
 def call_llm(prompt: str, expect_json: bool = True) -> str:

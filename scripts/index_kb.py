@@ -59,7 +59,7 @@ def main() -> None:
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError:
-        fail("sentence-transformers not installed. Run: pip install -r requirements.txt")
+        fail("sentence-transformers not installed. Run: pip install -r requirements-indexing.txt")
 
     model = SentenceTransformer(EMBEDDING_MODEL_NAME)
     actual_dim = model.get_sentence_embedding_dimension()

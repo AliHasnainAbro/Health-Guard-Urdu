@@ -142,11 +142,12 @@ container. No Streamlit rewrite or Vercel adapter is needed.
    its public URL serves the browser demo at `/` and API documentation at
    `/docs`.
 
-The first claim after a fresh build can take longer because
-`paraphrase-multilingual-MiniLM-L12-v2` is downloaded and loaded lazily. The
-Space filesystem is ephemeral, so generated MP3 files are temporary by
+The Space filesystem is ephemeral, so generated MP3 files are temporary by
 design. The knowledge base remains in Supabase and must be initialized once
-using the existing SQL files and `scripts/index_kb.py`.
+using the existing SQL files and `scripts/index_kb.py`. The Render API uses
+lightweight token-overlap retrieval so it does not load Torch or a local
+embedding model on the 512 MiB free instance. The optional
+`requirements-indexing.txt` is only for local knowledge-base rebuilds.
 
 ### Free deployment with a Static Space and Render
 

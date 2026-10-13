@@ -18,5 +18,7 @@ services:
         value: https://generativelanguage.googleapis.com/v1beta/openai
       - key: LLM_MODEL
         value: gemini-3.8-flash
+      - key: LLM_FALLBACK_MODEL
+        value: gemini-2.5-flash
       - key: FRONTEND_ORIGINS
         sync: false

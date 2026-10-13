@@ -6,6 +6,7 @@ classification with cultural framing checks -> structured output.
 import json
 import os
 import re
+import time
 
 import requests
 from dotenv import load_dotenv
@@ -21,6 +22,7 @@ LLM_BASE_URL = os.environ.get(
     "https://generativelanguage.googleapis.com/v1beta/openai",
 ).rstrip("/")
 LLM_MODEL = os.environ.get("LLM_MODEL", "gemini-3.8-flash")
+LLM_FALLBACK_MODEL = os.environ.get("LLM_FALLBACK_MODEL", "gemini-2.5-flash")
 
 # Tuned for 12-doc prototype KB: scores range 0.37-0.48 with paraphrase-multilingual-MiniLM.
 # Bump to ~0.5 once KB grows to hundreds of docs and similarity spread widens.
@@ -98,38 +100,49 @@ def call_llm(prompt: str, expect_json: bool = True) -> str:
             "converted text — no explanation, no quotes, no extra text."
         )
 
-    payload = {
-        "model": LLM_MODEL,
-        "messages": [
-            {"role": "system", "content": system_content},
-            {"role": "user", "content": prompt},
-        ],
-        "temperature": 0.1,
-    }
-    if expect_json:
-        payload["response_format"] = {"type": "json_object"}
-
     request_url = f"{LLM_BASE_URL}/chat/completions"
     request_headers = {
         "Authorization": f"Bearer {LLM_API_KEY}",
         "Content-Type": "application/json",
     }
-    resp = requests.post(
-        request_url,
-        headers=request_headers,
-        json=payload,
-        timeout=45,
-    )
-    if expect_json and resp.status_code in (400, 404, 422):
-        # Some OpenAI-compatible providers do not implement response_format.
-        # The prompt still requires JSON, and classify_claim validates it.
-        payload.pop("response_format", None)
-        resp = requests.post(
-            request_url,
-            headers=request_headers,
-            json=payload,
-            timeout=45,
-        )
+    models = [LLM_MODEL]
+    if LLM_FALLBACK_MODEL and LLM_FALLBACK_MODEL != LLM_MODEL:
+        models.append(LLM_FALLBACK_MODEL)
+
+    resp = None
+    for model in models:
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_content},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.1,
+        }
+        if expect_json:
+            payload["response_format"] = {"type": "json_object"}
+
+        for attempt in range(3):
+            resp = requests.post(
+                request_url,
+                headers=request_headers,
+                json=payload,
+                timeout=45,
+            )
+            if resp.ok:
+                break
+            if expect_json and resp.status_code in (400, 404, 422):
+                # Some OpenAI-compatible providers do not implement response_format.
+                # The prompt still requires JSON, and classify_claim validates it.
+                payload.pop("response_format", None)
+                continue
+            if resp.status_code not in (429, 500, 502, 503, 504):
+                break
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+        if resp.ok:
+            break
+
     if not resp.ok:
         detail = resp.text[:500].replace("\n", " ")
         raise requests.HTTPError(

@@ -33,7 +33,7 @@ Health misinformation spreads rapidly through Urdu-language social media — par
 1. **Input** — user submits a health claim as text: Urdu script or Roman Urdu (the script is auto-detected).
 2. **Normalization** — Roman Urdu / English claims are transliterated into standard Urdu script (with established Urdu medical vocabulary) before retrieval, because multilingual embeddings score the two scripts very differently. Retrieval runs on up to three transliteration variants and keeps the best match.
 3. **Retrieval** — the claim is embedded with `sentence-transformers` and matched against a vetted health-facts knowledge base stored in Supabase (Postgres + pgvector). Only documents clearing a similarity threshold are used.
-4. **Classification** — the retrieved context plus the claim go to an LLM (Qwen), which returns a category, confidence score, detected cultural framing patterns (religious authority, traditional-remedy, anti-vaccine), and a short counter-message — in the script the user wrote in.
+4. **Classification** — the retrieved context plus the claim go to Google Gemini, which returns a category, confidence score, detected cultural framing patterns (religious authority, traditional-remedy, anti-vaccine), and a short counter-message — in the script the user wrote in.
 5. **Speech** — the counter-message is converted to Urdu audio via gTTS (Google Text-to-Speech).
 6. **Response** — the API returns the classification, the counter-message text, and a playable audio file in one call.
 
@@ -62,7 +62,7 @@ Text-in, **text + audio-out**. No image OCR, no ASR (speech-to-text), and no Wha
 | API | FastAPI + Uvicorn |
 | Vector store | Supabase (Postgres + pgvector) |
 | Embeddings | sentence-transformers (`paraphrase-multilingual-MiniLM-L12-v2`, 384-dim) |
-| LLM classification | Qwen via Alibaba Cloud DashScope API |
+| LLM classification | Google Gemini via Google AI Studio |
 | TTS | gTTS (Google Text-to-Speech, Urdu — no API key needed) |
 
 ## API Endpoints
@@ -81,7 +81,7 @@ Text-in, **text + audio-out**. No image OCR, no ASR (speech-to-text), and no Wha
 
 - Python 3.10+
 - A Supabase project (URL + service-role key)
-- An Alibaba Cloud Qwen API key (DashScope) for the LLM
+- A Google Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
 - No TTS credentials needed (gTTS is free and keyless)
 
 ### Setup
@@ -98,7 +98,7 @@ source .venv/bin/activate
 
 pip install -r requirements.txt
 
-cp .env.example .env   # then fill in SUPABASE_URL, SUPABASE_SERVICE_KEY, QWEN_API_KEY
+cp .env.example .env   # then fill in SUPABASE_URL, SUPABASE_SERVICE_KEY, and LLM_API_KEY
 ```
 
 ### Knowledge base setup (one-time)
@@ -119,43 +119,22 @@ uvicorn app.main:app --reload
 
 Interactive API docs (Swagger UI) are then available at `http://127.0.0.1:8000/docs`, and the browser demo at `http://127.0.0.1:8000/`.
 
-### Deploy to Hugging Face Spaces
+### Free deployment with Render
 
-This repository is configured as a **Docker Space**. FastAPI, the browser demo,
-the embedding model, and the generated audio endpoint all run in the same
-container. No Streamlit rewrite or Vercel adapter is needed.
+Create a free Render Web Service from this repository using the included
+[Render configuration](./render.yaml). Set these environment variables in the
+Render dashboard:
 
-1. Create a new Space at <https://huggingface.co/new-space>.
-2. Choose **Docker** as the Space SDK and make the Space public or private as
-   appropriate.
-3. Push this repository to the Space:
+`SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `LLM_API_KEY`, `LLM_BASE_URL`,
+`LLM_MODEL`, and `FRONTEND_ORIGINS`. The LLM settings should be:
 
-   ```bash
-   git remote add hf https://huggingface.co/spaces/<your-username>/<your-space>
-   git push hf main
-   ```
+```text
+LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
+LLM_MODEL=gemini-2.5-flash
+```
 
-4. In the Space **Settings → Variables and secrets**, add these secrets:
-   `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, and `QWEN_API_KEY`. Use the exact
-   names from `.env.example`; do not commit their values.
-5. Wait for the Docker build to finish. The Space listens on port `7860`, and
-   its public URL serves the browser demo at `/` and API documentation at
-   `/docs`.
-
-The Space filesystem is ephemeral, so generated MP3 files are temporary by
-design. The knowledge base remains in Supabase and must be initialized once
-using the existing SQL files and `scripts/index_kb.py`. The Render API uses
-lightweight token-overlap retrieval so it does not load Torch or a local
-embedding model on the 512 MiB free instance. The optional
-`requirements-indexing.txt` is only for local knowledge-base rebuilds.
-
-### Free deployment with a Static Space and Render
-
-If Docker Spaces are not available on your free Hugging Face account, use the
-included [Render configuration](./render.yaml) for the FastAPI backend and the
-[static frontend](./frontend/). Create a free Render Web Service from this
-repository; Render will use `render.yaml` and will prompt for the three
-secrets. After deployment:
+After deployment, the browser demo is available at the Render service URL and
+the API documentation is available at `/docs`.
 
 The repository includes `runtime.txt` and a `PYTHON_VERSION` setting to pin
 Render to Python 3.11.9. It also pins the CPU-only PyTorch wheel because the
@@ -166,15 +145,8 @@ service was created manually in the Render dashboard, add
 `PYTHON_VERSION=3.11.9` under **Environment Variables** too; changing
 `render.yaml` alone does not update an existing dashboard-created service.
 
-1. Copy the Render URL into `frontend/index.html` as `BACKEND_URL`.
-2. Set `FRONTEND_ORIGINS` on Render to the Hugging Face Static Space URL, for
-   example `https://your-username-your-space.hf.space`.
-3. Upload the contents of `frontend/` to a separate Hugging Face Space created
-   with the **Static** template.
-
-Never add `SUPABASE_SERVICE_KEY` or `QWEN_API_KEY` to Hugging Face variables.
-`SUPABASE_URL` is not a credential, but it is also unnecessary in the static
-frontend; keep all three backend settings in Render.
+Never expose `SUPABASE_SERVICE_KEY` or `LLM_API_KEY` in a public frontend.
+Keep all backend settings in Render.
 
 ## Project Structure
 

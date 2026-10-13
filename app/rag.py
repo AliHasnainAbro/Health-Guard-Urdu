@@ -15,9 +15,12 @@ load_dotenv()
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
-QWEN_API_KEY = os.environ.get("QWEN_API_KEY", "")
-QWEN_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
-QWEN_MODEL = "qwen-plus"
+LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
+LLM_BASE_URL = os.environ.get(
+    "LLM_BASE_URL",
+    "https://generativelanguage.googleapis.com/v1beta/openai",
+).rstrip("/")
+LLM_MODEL = os.environ.get("LLM_MODEL", "gemini-2.5-flash")
 
 # Tuned for 12-doc prototype KB: scores range 0.37-0.48 with paraphrase-multilingual-MiniLM.
 # Bump to ~0.5 once KB grows to hundreds of docs and similarity spread widens.
@@ -79,9 +82,9 @@ def _content_tokens(text: str) -> set[str]:
 
 
 def call_llm(prompt: str, expect_json: bool = True) -> str:
-    """Call Qwen via Alibaba Cloud DashScope (OpenAI-compatible endpoint)."""
-    if not QWEN_API_KEY:
-        raise RuntimeError("QWEN_API_KEY not set in .env")
+    """Call the configured OpenAI-compatible multilingual LLM provider."""
+    if not LLM_API_KEY:
+        raise RuntimeError("LLM_API_KEY not set in .env")
 
     if expect_json:
         system_content = (
@@ -96,7 +99,7 @@ def call_llm(prompt: str, expect_json: bool = True) -> str:
         )
 
     payload = {
-        "model": QWEN_MODEL,
+        "model": LLM_MODEL,
         "messages": [
             {"role": "system", "content": system_content},
             {"role": "user", "content": prompt},
@@ -107,9 +110,9 @@ def call_llm(prompt: str, expect_json: bool = True) -> str:
         payload["response_format"] = {"type": "json_object"}
 
     resp = requests.post(
-        f"{QWEN_BASE_URL}/chat/completions",
+        f"{LLM_BASE_URL}/chat/completions",
         headers={
-            "Authorization": f"Bearer {QWEN_API_KEY}",
+            "Authorization": f"Bearer {LLM_API_KEY}",
             "Content-Type": "application/json",
         },
         json=payload,

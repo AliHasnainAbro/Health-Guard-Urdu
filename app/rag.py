@@ -22,7 +22,7 @@ LLM_BASE_URL = os.environ.get(
     "https://generativelanguage.googleapis.com/v1beta/openai",
 ).rstrip("/")
 LLM_MODEL = os.environ.get("LLM_MODEL", "gemini-3.8-flash")
-LLM_FALLBACK_MODEL = os.environ.get("LLM_FALLBACK_MODEL", "gemini-2.5-flash")
+LLM_FALLBACK_MODEL = os.environ.get("LLM_FALLBACK_MODEL", "gemini-3.8-flash-lite")
 
 # Tuned for 12-doc prototype KB: scores range 0.37-0.48 with paraphrase-multilingual-MiniLM.
 # Bump to ~0.5 once KB grows to hundreds of docs and similarity spread widens.
@@ -176,7 +176,10 @@ NORMALIZATION_PROMPT_TEMPLATE = """درج ذیل متن رومن اردو (لا�
 def normalize_claim(claim: str) -> str:
     """Transliterate Roman Urdu / English health claims into Urdu script before embedding."""
     prompt = NORMALIZATION_PROMPT_TEMPLATE.format(text=claim)
-    normalized = call_llm(prompt, expect_json=False).strip()
+    try:
+        normalized = call_llm(prompt, expect_json=False).strip()
+    except requests.RequestException:
+        normalized = claim
     return normalized or claim
 
 

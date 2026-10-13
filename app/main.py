@@ -9,6 +9,7 @@ import os
 import logging
 from pathlib import Path
 
+import requests
 from fastapi import FastAPI, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
@@ -76,7 +77,10 @@ def check_claim(claim: str = Form(...)):
     # gTTS with lang='ur' mispronounces Roman-script (Latin-letter) input badly.
     tts_text = result["counter_message_urdu"]
     if is_roman_script(tts_text):
-        tts_text = to_urdu_script(tts_text)
+        try:
+            tts_text = to_urdu_script(tts_text)
+        except requests.RequestException:
+            tts_text = result["counter_message_urdu"]
 
     audio_path = text_to_speech_urdu(tts_text)
     audio_file = os.path.basename(audio_path)

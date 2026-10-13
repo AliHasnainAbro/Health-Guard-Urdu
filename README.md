@@ -24,7 +24,7 @@ Health misinformation spreads rapidly through Urdu-language social media — par
 1. **Input** — user submits a health claim as text: Urdu script or Roman Urdu (the script is auto-detected).
 2. **Normalization** — Roman Urdu / English claims are transliterated into standard Urdu script (with established Urdu medical vocabulary) before retrieval, because multilingual embeddings score the two scripts very differently. Retrieval runs on up to three transliteration variants and keeps the best match.
 3. **Retrieval** — the claim is embedded with `sentence-transformers` and matched against a vetted health-facts knowledge base stored in Supabase (Postgres + pgvector). Only documents clearing a similarity threshold are used.
-4. **Classification** — the retrieved context plus the claim go to Google Gemini, which returns a category, confidence score, detected cultural framing patterns (religious authority, traditional-remedy, anti-vaccine), and a short counter-message — in the script the user wrote in.
+4. **Classification** — the retrieved context plus the claim go to Qwen through Alibaba Model Studio, which returns a category, confidence score, detected cultural framing patterns (religious authority, traditional-remedy, anti-vaccine), and a short counter-message — in the script the user wrote in.
 5. **Speech** — the counter-message is converted to Urdu audio via gTTS (Google Text-to-Speech).
 6. **Response** — the API returns the classification, the counter-message text, and a playable audio file in one call.
 
@@ -53,7 +53,7 @@ Text-in, **text + audio-out**. No image OCR, no ASR (speech-to-text), and no Wha
 | API | FastAPI + Uvicorn |
 | Vector store | Supabase (Postgres + pgvector) |
 | Embeddings | sentence-transformers (`paraphrase-multilingual-MiniLM-L12-v2`, 384-dim) |
-| LLM classification | Google Gemini via Google AI Studio |
+| LLM classification | Qwen via Alibaba Model Studio (Singapore workspace) |
 | TTS | gTTS (Google Text-to-Speech, Urdu — no API key needed) |
 
 ## API Endpoints
@@ -72,7 +72,7 @@ Text-in, **text + audio-out**. No image OCR, no ASR (speech-to-text), and no Wha
 
 - Python 3.10+
 - A Supabase project (URL + service-role key)
-- A Google Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
+- An Alibaba Model Studio API key with access to the Singapore workspace
 - No TTS credentials needed (gTTS is free and keyless)
 
 ### Setup
@@ -117,17 +117,22 @@ Create a free Render Web Service from this repository using the included
 Render dashboard:
 
 `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `LLM_API_KEY`, `LLM_BASE_URL`,
-`LLM_MODEL`, and `FRONTEND_ORIGINS`. The LLM settings should be:
+`LLM_MODEL`, `LLM_FALLBACK_MODEL`, and `FRONTEND_ORIGINS`. The working LLM
+settings are:
 
 ```text
-LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
-LLM_MODEL=gemini-3.8-flash
-# Optional; leave empty unless the model is confirmed available for your API key.
-LLM_FALLBACK_MODEL=
+LLM_BASE_URL=https://ws-de23fer3gmw7ckpd.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1
+LLM_MODEL=qwen3.7-max-2026-06-08
+LLM_FALLBACK_MODEL=qwen3.6-plus
 ```
 
 After deployment, the browser demo is available at the Render service URL and
 the API documentation is available at `/docs`.
+
+The current production deployment uses Alibaba Model Studio's Singapore
+workspace endpoint. The primary model is `qwen3.7-max-2026-06-08` and the
+fallback is `qwen3.6-plus`; both must be enabled for the workspace and free
+quota. Keep the API key only in Render environment variables.
 
 The repository includes `runtime.txt` and a `PYTHON_VERSION` setting to pin
 Render to Python 3.11.9. It also pins the CPU-only PyTorch wheel because the

@@ -19,9 +19,9 @@ SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 LLM_BASE_URL = os.environ.get(
     "LLM_BASE_URL",
-    "https://generativelanguage.googleapis.com/v1beta/openai",
+    "https://ws-de23fer3gmw7ckpd.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1",
 ).rstrip("/")
-LLM_MODEL = os.environ.get("LLM_MODEL", "gemini-3.8-flash")
+LLM_MODEL = os.environ.get("LLM_MODEL", "qwen3.7-max-2026-06-08")
 LLM_FALLBACK_MODEL = os.environ.get("LLM_FALLBACK_MODEL", "").strip()
 
 # Tuned for 12-doc prototype KB: scores range 0.37-0.48 with paraphrase-multilingual-MiniLM.

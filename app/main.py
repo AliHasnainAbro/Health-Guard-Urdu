@@ -6,14 +6,17 @@ no WhatsApp/Telegram bot integration in this build.
 """
 
 import os
+import logging
 from pathlib import Path
 
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 
 from app.rag import call_llm, classify_claim, is_roman_script, to_urdu_script
 from app.tts import text_to_speech_urdu
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="HealthGuard Urdu",
@@ -60,7 +63,14 @@ def demo_form():
 @app.post("/check-claim")
 def check_claim(claim: str = Form(...)):
     """Full pipeline: classify the claim via RAG, generate TTS audio, return HTML with player."""
-    result = classify_claim(claim)
+    try:
+        result = classify_claim(claim)
+    except Exception as exc:
+        logger.exception("Claim classification failed")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Claim classification failed: {exc}",
+        ) from exc
 
     # TTS needs actual Urdu script regardless of what script is displayed on screen —
     # gTTS with lang='ur' mispronounces Roman-script (Latin-letter) input badly.

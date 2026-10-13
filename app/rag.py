@@ -109,15 +109,27 @@ def call_llm(prompt: str, expect_json: bool = True) -> str:
     if expect_json:
         payload["response_format"] = {"type": "json_object"}
 
+    request_url = f"{LLM_BASE_URL}/chat/completions"
+    request_headers = {
+        "Authorization": f"Bearer {LLM_API_KEY}",
+        "Content-Type": "application/json",
+    }
     resp = requests.post(
-        f"{LLM_BASE_URL}/chat/completions",
-        headers={
-            "Authorization": f"Bearer {LLM_API_KEY}",
-            "Content-Type": "application/json",
-        },
+        request_url,
+        headers=request_headers,
         json=payload,
-        timeout=30,
+        timeout=45,
     )
+    if expect_json and resp.status_code in (400, 404, 422):
+        # Some OpenAI-compatible providers do not implement response_format.
+        # The prompt still requires JSON, and classify_claim validates it.
+        payload.pop("response_format", None)
+        resp = requests.post(
+            request_url,
+            headers=request_headers,
+            json=payload,
+            timeout=45,
+        )
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
 

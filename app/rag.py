@@ -20,7 +20,7 @@ LLM_BASE_URL = os.environ.get(
     "LLM_BASE_URL",
     "https://generativelanguage.googleapis.com/v1beta/openai",
 ).rstrip("/")
-LLM_MODEL = os.environ.get("LLM_MODEL", "gemini-2.5-flash")
+LLM_MODEL = os.environ.get("LLM_MODEL", "gemini-3.8-flash")
 
 # Tuned for 12-doc prototype KB: scores range 0.37-0.48 with paraphrase-multilingual-MiniLM.
 # Bump to ~0.5 once KB grows to hundreds of docs and similarity spread widens.
@@ -130,7 +130,12 @@ def call_llm(prompt: str, expect_json: bool = True) -> str:
             json=payload,
             timeout=45,
         )
-    resp.raise_for_status()
+    if not resp.ok:
+        detail = resp.text[:500].replace("\n", " ")
+        raise requests.HTTPError(
+            f"{resp.status_code} from LLM provider: {detail}",
+            response=resp,
+        )
     return resp.json()["choices"][0]["message"]["content"]
 
 

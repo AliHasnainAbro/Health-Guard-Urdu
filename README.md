@@ -130,7 +130,7 @@ Render dashboard:
 
 ```text
 LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
-LLM_MODEL=gemini-2.5-flash
+LLM_MODEL=gemini-3.8-flash
 ```
 
 After deployment, the browser demo is available at the Render service URL and

@@ -110,6 +110,7 @@ def call_llm(prompt: str, expect_json: bool = True) -> str:
         models.append(LLM_FALLBACK_MODEL)
 
     resp = None
+    last_request_error = None
     for model in models:
         payload = {
             "model": model,
@@ -123,12 +124,19 @@ def call_llm(prompt: str, expect_json: bool = True) -> str:
             payload["response_format"] = {"type": "json_object"}
 
         for attempt in range(3):
-            resp = requests.post(
-                request_url,
-                headers=request_headers,
-                json=payload,
-                timeout=45,
-            )
+            try:
+                resp = requests.post(
+                    request_url,
+                    headers=request_headers,
+                    json=payload,
+                    timeout=45,
+                )
+                last_request_error = None
+            except requests.RequestException as exc:
+                last_request_error = exc
+                if attempt < 2:
+                    time.sleep(2 ** attempt)
+                continue
             if resp.ok:
                 break
             if expect_json and resp.status_code in (400, 404, 422):
@@ -143,6 +151,8 @@ def call_llm(prompt: str, expect_json: bool = True) -> str:
         if resp.ok:
             break
 
+    if resp is None and last_request_error is not None:
+        raise last_request_error
     if not resp.ok:
         detail = resp.text[:500].replace("\n", " ")
         raise requests.HTTPError(

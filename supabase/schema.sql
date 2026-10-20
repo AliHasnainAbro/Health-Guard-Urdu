@@ -10,7 +10,7 @@ create extension if not exists vector;
 create table if not exists healthguard_kb (
     id bigserial primary key,
     title text not null,
-    category text not null,          -- e.g. 'polio_vaccine', 'general_vaccine', 'home_remedy'
+    category text not null,          -- e.g. 'polio_vaccine', 'general_vaccine', 'injection', 'maternal_health', 'child_health', 'home_remedy'
     content_urdu text not null,      -- the actual Urdu-language document content
     source_url text,                 -- WHO EMRO source reference
     is_direct_urdu_source boolean default false,  -- true if sourced in Urdu directly, false if translated

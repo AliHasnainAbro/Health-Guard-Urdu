@@ -12,6 +12,8 @@ import requests
 from dotenv import load_dotenv
 from supabase import create_client
 
+from app.lexicon import interpret_claim
+
 load_dotenv()
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
@@ -26,7 +28,7 @@ LLM_FALLBACK_MODEL = os.environ.get("LLM_FALLBACK_MODEL", "").strip()
 
 # Tuned for 12-doc prototype KB: scores range 0.37-0.48 with paraphrase-multilingual-MiniLM.
 # Bump to ~0.5 once KB grows to hundreds of docs and similarity spread widens.
-RELEVANCE_THRESHOLD = 0.40
+RELEVANCE_THRESHOLD = 0.45
 
 _supabase = None
 
@@ -38,7 +40,7 @@ def get_supabase():
     return _supabase
 
 
-def retrieve_context(claim: str, top_k: int = 3) -> list[dict]:
+def retrieve_context(claim: str, top_k: int = 3, topic: str | None = None) -> list[dict]:
     """Retrieve matching KB rows without loading a local ML model.
 
     Render's free instance cannot hold Torch plus the embedding model. The KB
@@ -54,6 +56,10 @@ def retrieve_context(claim: str, top_k: int = 3) -> list[dict]:
     ).execute()
     ranked = []
     for document in result.data:
+        if topic in {"vaccination", "injection"} and not _category_matches_topic(
+            document.get("category", ""), topic
+        ):
+            continue
         document_text = " ".join(
             str(document.get(field, "")) for field in ("title", "category", "content_urdu")
         )
@@ -71,6 +77,13 @@ def retrieve_context(claim: str, top_k: int = 3) -> list[dict]:
         for document in ranked[:top_k]
         if document["similarity"] >= RELEVANCE_THRESHOLD
     ]
+
+
+def _category_matches_topic(category: str, topic: str) -> bool:
+    category_text = str(category).casefold()
+    if topic == "vaccination":
+        return any(term in category_text for term in ("vaccine", "vaccination", "polio", "immun"))
+    return "injection" in category_text
 
 
 def _content_tokens(text: str) -> set[str]:
@@ -262,6 +275,25 @@ NO_MATCH_PROMPT_TEMPLATE = """آپ ایک صحت سے متعلق غلط معلو
 def classify_claim(raw_claim: str) -> dict:
     """Full pipeline: normalize script, retrieve context, classify with LLM, return structured result."""
     input_is_roman = is_roman_script(raw_claim)
+    interpretation = interpret_claim(raw_claim)
+    if interpretation["ambiguity_detected"]:
+        if input_is_roman:
+            message = (
+                "Aap 'teeka' ya 'tika' se vaccine murad le rahe hain ya dard ke injection ke baare mein pooch rahe hain?"
+            )
+        else:
+            message = "کیا آپ 'ٹیکہ' سے ویکسین مراد لے رہے ہیں یا درد کے انجیکشن کے بارے میں پوچھ رہے ہیں؟"
+        return {
+            "category": "مزید وضاحت درکار ہے",
+            "confidence_score": 0,
+            "cultural_framing_detected": [],
+            "counter_message_urdu": message,
+            "knowledge_base_match": False,
+            "retrieved_sources": [],
+            "needs_clarification": True,
+            "interpretation": interpretation,
+        }
+
     retrieved = []
     top_similarity = 0.0
     if input_is_roman:
@@ -276,7 +308,7 @@ def classify_claim(raw_claim: str) -> dict:
             if variant in seen_variants:
                 continue
             seen_variants.add(variant)
-            docs = retrieve_context(variant, top_k=3)
+            docs = retrieve_context(variant, top_k=3, topic=interpretation["topic"])
             sim = float(docs[0]["similarity"]) if docs else 0.0
             if sim > top_similarity:
                 retrieved, top_similarity = docs, sim
@@ -284,12 +316,12 @@ def classify_claim(raw_claim: str) -> dict:
                 break  # comfortable margin — no need for more variants
         # Raw-claim retrieval as a final fallback
         if top_similarity < RELEVANCE_THRESHOLD:
-            docs_raw = retrieve_context(raw_claim, top_k=3)
+            docs_raw = retrieve_context(raw_claim, top_k=3, topic=interpretation["topic"])
             sim_raw = float(docs_raw[0]["similarity"]) if docs_raw else 0.0
             if sim_raw > top_similarity:
                 retrieved, top_similarity = docs_raw, sim_raw
     else:
-        retrieved = retrieve_context(raw_claim, top_k=3)
+        retrieved = retrieve_context(raw_claim, top_k=3, topic=interpretation["topic"])
         top_similarity = float(retrieved[0]["similarity"]) if retrieved else 0.0
 
     # Check relevance: use top similarity score to decide if KB has useful context
@@ -327,6 +359,8 @@ def classify_claim(raw_claim: str) -> dict:
 
     # Force the KB match flag to match our threshold check
     result["knowledge_base_match"] = kb_match
+    result["needs_clarification"] = False
+    result["interpretation"] = interpretation
 
     # Only attach sources if we actually used the KB
     if kb_match:

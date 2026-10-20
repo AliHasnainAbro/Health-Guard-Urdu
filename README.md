@@ -19,6 +19,12 @@ Developed as a submission for the **2026 IEEE Technology Summit AI Founder Showc
 
 Health misinformation spreads rapidly through Urdu-language social media — particularly WhatsApp, where forwarding is the default behavior. Most fact-checking tools target English content, leaving Urdu speakers with no quick way to verify the remedies, warnings, and "cures" that reach them daily. HealthGuard Urdu closes that gap: paste the claim, get a verdict and an audio reply you can forward right back.
 
+The primary audience is organizations running vaccination campaigns, maternal and
+child-health programs, community health-worker services, rural health
+initiatives, public-health departments, immunization hotlines, and health
+education programs. The system is designed for Lady Health Workers and similar
+field staff who need safe, shareable Urdu responses.
+
 ## How It Works
 
 1. **Input** — user submits a health claim as text: Urdu script or Roman Urdu (the script is auto-detected).
@@ -27,6 +33,13 @@ Health misinformation spreads rapidly through Urdu-language social media — par
 4. **Classification** — the retrieved context plus the claim go to Qwen through Alibaba Model Studio, which returns a category, confidence score, detected cultural framing patterns (religious authority, traditional-remedy, anti-vaccine), and a short counter-message — in the script the user wrote in.
 5. **Speech** — the counter-message is converted to Urdu audio via gTTS (Google Text-to-Speech).
 6. **Response** — the API returns the classification, the counter-message text, and a playable audio file in one call.
+
+Roman Urdu terms with multiple health meanings, such as `tika`, `teeka`,
+`tikka`, `teekay`, and `قطرے`, are checked against a domain lexicon before
+retrieval. When the context does not disambiguate vaccine versus injection,
+the system returns `needs_clarification` instead of a confident classification.
+The knowledge base supports separate vaccine, injection, maternal-health, and
+child-health categories so those meanings can be expanded independently.
 
 If nothing in the knowledge base clears the relevance threshold, the system says so honestly (`KB match: No`, capped confidence, no fabricated sources) and answers from general medical caution.
 

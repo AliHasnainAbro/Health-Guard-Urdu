@@ -88,6 +88,7 @@ def check_claim(claim: str = Form(...)):
     framing = result.get("cultural_framing_detected", [])
     sources = result.get("retrieved_sources", [])
     kb_match = result.get("knowledge_base_match", False)
+    needs_clarification = result.get("needs_clarification", False)
 
     # Convert button initial state: offer the script the counter-message is NOT in
     if is_roman_script(claim):
@@ -127,6 +128,7 @@ def check_claim(claim: str = Form(...)):
       <p><strong>Category:</strong> {result['category']}</p>
       <p><strong>Confidence:</strong> {result['confidence_score']}%</p>
       <p><strong>KB match:</strong> {"Yes" if kb_match else "No"}</p>
+      {"<p><strong>Safety notice:</strong> This claim needs clarification before it can be classified.</p>" if needs_clarification else ""}
       <p><strong>Cultural framing:</strong><br>{framing_html}</p>
       <p><strong>Counter-message:</strong><br>
         <span id="counter-message">{result['counter_message_urdu']}</span><br>
